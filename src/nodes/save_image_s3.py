@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 from comfy.cli_args import args
+import uuid
 
 from ..client_s3 import get_s3_instance
 S3_INSTANCE = get_s3_instance()
@@ -64,7 +65,7 @@ class SaveImageS3:
                     img.save(temp_file_path, pnginfo=metadata, compress_level=self.compress_level)
 
                     # Upload the temporary file to S3
-                    s3_path = os.path.join(full_output_folder, file)
+                    s3_path = os.path.join(full_output_folder, f'{uuid.uuid4().hex}.png')
                     file_path = S3_INSTANCE.upload_file(temp_file_path, s3_path)
 
                     # Add the s3 path to the s3_image_paths list
