@@ -6,6 +6,7 @@ from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 from comfy.cli_args import args
 import uuid
+import logging
 
 from ..client_s3 import get_s3_instance
 S3_INSTANCE = get_s3_instance()
@@ -38,9 +39,10 @@ class SaveImageS3:
 
     def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, images[0].shape[1], images[0].shape[0])
+        full_output_folder = S3_INSTANCE.quick_get_save_path(filename_prefix)
         results = list()
         s3_image_paths = list()
+        counter = 1
         
         for image in images:
             i = 255. * image.cpu().numpy()
@@ -53,8 +55,6 @@ class SaveImageS3:
                 if extra_pnginfo is not None:
                     for x in extra_pnginfo:
                         metadata.add_text(x, json.dumps(extra_pnginfo[x]))
-            
-            file = f"{filename}_{counter:05}_.png"
             temp_file = None
             try:
                 # Create a temporary file
@@ -65,7 +65,7 @@ class SaveImageS3:
                     img.save(temp_file_path, pnginfo=metadata, compress_level=self.compress_level)
 
                     # Upload the temporary file to S3
-                    s3_path = os.path.join(full_output_folder, f'{uuid.uuid4().hex}.png')
+                    s3_path = f'{full_output_folder}__{counter:02}.png'
                     file_path = S3_INSTANCE.upload_file(temp_file_path, s3_path)
 
                     # Add the s3 path to the s3_image_paths list
@@ -73,8 +73,8 @@ class SaveImageS3:
                     
                     # Add the result to the results list
                     results.append({
-                        "filename": file,
-                        "subfolder": subfolder,
+                        "filename": file_path,
+                        "subfolder": "",
                         "type": self.type
                     })
                     counter += 1
@@ -84,4 +84,5 @@ class SaveImageS3:
                 if temp_file_path and os.path.exists(temp_file_path):
                     os.remove(temp_file_path)
 
+        # logging.info(f"Saved images to {s3_image_paths}")
         return { "ui": { "images": results },  "result": (s3_image_paths,) }

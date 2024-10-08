@@ -97,6 +97,13 @@ class S3:
             err = f"Failed to upload file to S3: {e}"
             logger.error(err)
     
+    def quick_get_save_path(self, filename_prefix):
+        
+        full_output_folder_s3 = os.path.join(self.output_dir, filename_prefix)
+        
+        return full_output_folder_s3
+    
+    
     def get_save_path(self, filename_prefix, image_width=0, image_height=0):
         def map_filename(filename):
             prefix_len = len(os.path.basename(filename_prefix))
