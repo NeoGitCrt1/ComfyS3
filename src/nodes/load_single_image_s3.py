@@ -13,6 +13,7 @@ class LoadSingleImageS3:
         return {"required":
                     {
                         "s3_key": ("STRING", {"default": "output"}),
+                        "force_fetch": (["false", "true"], {"default": "false"}),
                      },
                     
                 }
@@ -21,8 +22,15 @@ class LoadSingleImageS3:
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_s3_image"
     
-    def load_s3_image(self, s3_key):
-        image_path = S3_INSTANCE.download_file(s3_path=s3_key, local_path=f"input/{s3_key.replace('/','_')}")
+    def load_s3_image(self, s3_key, force_fetch):
+        local_path=f"input/{s3_key.replace('/','_')}"
+        image_path = ""
+        if force_fetch == "false" and os.path.exists(local_path):
+            image_path = local_path
+        else:
+            image_path = S3_INSTANCE.download_file(s3_path=s3_key, local_path=local_path)
+        
+        
         
         img = Image.open(image_path)
         output_images = []
